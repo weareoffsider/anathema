@@ -172,7 +172,6 @@ function _writeFile (pathStr: string, file: WorkingFile) {
       writeFile(pathStr, file.data, (err) => {
         if (err) return reject(err)
 
-        file.name = pathStr
         resolve(file)
       })
     })

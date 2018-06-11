@@ -30,17 +30,17 @@ if (argv._ && argv._.length > 0) {
   tasksToRun = argv._
 }
 
-const spinner = ora('Running ' + tasksToRun.join(', ')).start()
-console.log('')
+// const spinner = ora('Running ' + tasksToRun.join(', ')).start()
+// console.log('')
 
 Promise.all(tasksToRun.map((name: string) => {
   return anathemaInstance.run(name, {source: "cli"})
 })).then((success: any) => {
-  spinner.clear()
-  spinner.stop()
+  // spinner.clear()
+  // spinner.stop()
 }, (err: any) => {
-  spinner.clear()
-  spinner.stop()
+  // spinner.clear()
+  // spinner.stop()
   console.log(chalk.red.bold("Anathema encountered a runtime error:"))
   console.log(chalk.red('  ' + err.stack))
 })

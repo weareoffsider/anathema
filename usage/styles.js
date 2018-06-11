@@ -5,11 +5,11 @@ var autoprefixer = require('autoprefixer')
 
 anathema.watcher(
   "styles",
-  "usage/src/*.less",
+  "usage/src/**/*.less",
   ["styles"]
 )
 anathema.task("styles", function (task) {
-  return task.src("usage/src/**/*.less")
+  return task.src("usage/src/app.less")
     .transform(
       (file) => less.render(file.data, {strictMath: true}),
       (file, out) => postcss([autoprefixer]).process(out.css, {from: undefined}),

@@ -6,9 +6,12 @@ import * as mkdirp from 'mkdirp'
 import chalk from 'chalk'
 import Dashboard from './Dashboard'
 import Task from './Task'
+import Watcher, {WatchEntry} from './Watcher'
 
 interface RunContext {
   source: string
+  dashboard?: Dashboard
+  watcher?: Watcher
 }
 
 export function reportOnTask(task: Task, status: string, err?: any) {
@@ -46,12 +49,6 @@ export function reportOnTask(task: Task, status: string, err?: any) {
   log('')
 }
 
-interface WatchEntry {
-  name: string
-  matcher: string
-  tasks: string[]
-}
-
 export default class Anathema {
   public dashboardRegister: {[key: string]: any}
   public taskRegister: {[key: string]: any}
@@ -71,8 +68,8 @@ export default class Anathema {
     this.dashboardRegister[name] = func
   }
 
-  watcher (name: string, matcher: string, tasks: string[]) {
-    this.watchRegister[name] = {name, matcher, tasks}
+  watcher (name: string, matcher: string, tasks: string[], options: any) {
+    this.watchRegister[name] = {name, matcher, tasks, options}
   }
 
   task (name: string, func: any) {
@@ -88,6 +85,7 @@ export default class Anathema {
         task.stats.endTimestamp = +new Date()
         if (runContext.source == 'cli') {
           reportOnTask(task, "success")
+        } else if (runContext.source == 'watcher') {
         }
       }, (err: any) => {
         reportOnTask(task, "fail", err)
@@ -95,10 +93,15 @@ export default class Anathema {
       })
     } else if (this.dashboardRegister[name]) {
       const func = this.dashboardRegister[name]
-      const dashboard = new Dashboard(name, this.rootDirectory)
 
       try {
-        func(dashboard)
+        return new Promise((resolve, reject) => {
+          const dashboard = new Dashboard(
+            this,
+            name, this.rootDirectory, resolve, reject
+          )
+          func(dashboard)
+        })
       } catch (e) {
         return Promise.reject(e)
       }

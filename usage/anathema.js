@@ -4,7 +4,7 @@ require('./styles.js')
 require('./dependencies.js')
 
 anathema.dashboard("default", function (dashboard) {
-  console.log("run dash")
+  dashboard.watch(['styles'])
 })
 
 module.exports = anathema
