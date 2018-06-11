@@ -1,18 +1,22 @@
-var anathema = require("../node")
-var less = require("less")
-var postcss = require("postcss")
-var autoprefixer = require("autoprefixer")
+var anathema = require('./config')
+var less = require('less')
+var postcss = require('postcss')
+var autoprefixer = require('autoprefixer')
 
-anathema.task("styles", function () {
-  return anathema.src("src/*.less")
+anathema.watcher(
+  "styles",
+  "usage/src/*.less",
+  ["styles"]
+)
+anathema.task("styles", function (task) {
+  return task.src("usage/src/**/*.less")
     .transform(
       (file) => less.render(file.data, {strictMath: true}),
-      (file, out) => { file.data = out.css }
+      (file, out) => postcss([autoprefixer]).process(out.css, {from: undefined}),
+      (file, out) => {
+        file.data = out.css
+        file.name = file.name.replace('.less', '.css')
+      }
     )
-    .transform(
-      (file) => postcss([autoprefixer]).process(file.data, {from: undefined}),
-      (file, out) => { file.data = out.css }
-    )
-    .outputFile('out/app.css')
-    // .outputToDir('out')
+    .output('usage/out')
 })

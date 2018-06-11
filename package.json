@@ -3,28 +3,39 @@
   "version": "0.1.0",
   "description": "A task runner/orchestrator for people who aren't a fan of plugins.",
   "main": "index.js",
+  "bin": {
+    "anathema": "./node/cli.js"
+  },
   "scripts": {
     "build": "tsc",
+    "test-anathema": "./node/cli.js --config usage/anathema.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "James Rakich",
   "license": "MIT",
   "dependencies": {
-    "file-matcher": "^1.3.0",
-    "minimatch": "^3.0.4"
+    "chalk": "^2.4.1",
+    "file-matcher": "1.3.0",
+    "glob": "7.1.2",
+    "minimatch": "3.0.4",
+    "mkdirp": "0.5.1",
+    "ora": "^2.1.0",
+    "yargs": "^11.0.0"
   },
   "devDependencies": {
-    "@types/glob": "^5.0.35",
-    "@types/minimatch": "^3.0.3",
-    "@types/mkdirp": "^0.5.2",
-    "@types/node": "^10.3.1",
-    "async": "^2.6.1",
-    "autoprefixer": "^8.6.0",
-    "glob": "^7.1.2",
-    "less": "^3.0.4",
-    "mkdirp": "^0.5.1",
-    "postcss": "^6.0.22",
-    "precss": "^3.1.2",
-    "typescript": "^2.9.1"
+    "@types/glob": "5.0.35",
+    "@types/minimatch": "3.0.3",
+    "@types/mkdirp": "0.5.2",
+    "@types/node": "10.3.1",
+    "@types/yargs": "^11.0.0",
+    "async": "2.6.1",
+    "autoprefixer": "8.6.0",
+    "find-package-json": "^1.1.0",
+    "less": "3.0.4",
+    "postcss": "6.0.22",
+    "precss": "3.1.2",
+    "react": "^16.4.0",
+    "redux": "^4.0.0",
+    "typescript": "2.9.1"
   }
 }
