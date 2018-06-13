@@ -151,6 +151,9 @@ function _transform (file: WorkingFile, args: any[]) {
           }
           if (newResult.then) {
             return resolve(newResult)
+          } else {
+            // could be synchronous result, just return it
+            resolve(newResult)
           }
         } catch (e) {
           reject(e)

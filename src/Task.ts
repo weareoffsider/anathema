@@ -1,4 +1,5 @@
 
+import chalk from 'chalk'
 import {src} from './FilePipe'
 
 type MatcherDefinition = string | Array<string>
@@ -26,5 +27,41 @@ export default class Task {
 
   src (matcher: MatcherDefinition) {
     return src(this, this.rootDirectory, matcher)
+  }
+
+  reportToString(status: string, err?: any) {
+    const lines: string[] = []
+    const log = (txt: string) => lines.push(txt)
+
+    if (status == "fail") {
+      log(chalk.red.bold('Task: ') + chalk.white.bold.underline(this.name))
+      log(chalk.red("  Task failed to complete:"))
+      log(chalk.red('  ' + err.stack))
+    } else {
+      log(chalk.green.bold('Task: ') + chalk.white.bold.underline(this.name))
+      log(chalk.green("  Task complete."))
+    }
+
+    if (this.stats.filesMatched.length > 0) {
+      log(chalk.cyan('  -> input files'))
+      this.stats.filesMatched.forEach((file: string) => {
+        const shortPath = file.replace(this.rootDirectory, '')
+        log('    - ' + shortPath)
+      })
+    } else {
+      log(chalk.red.bold('  -> no input files were found'))
+    }
+
+    if (this.stats.filesOutput.length > 0) {
+      log(chalk.cyan('  <- output files'))
+      this.stats.filesOutput.forEach((file: string) => {
+        const shortPath = file.replace(this.rootDirectory, '')
+        log('    - ' + shortPath)
+      })
+    } else {
+      log(chalk.red.bold('  <- no files were output'))
+    }
+
+    return lines.join('\n')
   }
 }

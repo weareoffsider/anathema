@@ -16,37 +16,7 @@ interface RunContext {
 
 export function reportOnTask(task: Task, status: string, err?: any) {
   const log = console.log
-
-  if (status == "fail") {
-    log(chalk.red.bold('Task: ') + chalk.white.bold.underline(task.name))
-    log(chalk.red("  Task failed to complete:"))
-    log(chalk.red('  ' + err.stack))
-  } else {
-    log(chalk.green.bold('Task: ') + chalk.white.bold.underline(task.name))
-    log(chalk.green("  Task complete."))
-  }
-
-  if (task.stats.filesMatched.length > 0) {
-    log(chalk.cyan('  -> input files'))
-    task.stats.filesMatched.forEach((file: string) => {
-      const shortPath = file.replace(task.rootDirectory, '')
-      log('    - ' + shortPath)
-    })
-  } else {
-    console.log(chalk.red.bold('  -> no input files were found'))
-  }
-
-  if (task.stats.filesOutput.length > 0) {
-    console.log(chalk.cyan('  <- output files'))
-    task.stats.filesOutput.forEach((file: string) => {
-      const shortPath = file.replace(task.rootDirectory, '')
-      console.log('    - ' + shortPath)
-    })
-  } else {
-    console.log(chalk.red.bold('  <- no files were output'))
-  }
-
-  log('')
+  log(task.reportToString(status, err))
 }
 
 export default class Anathema {
@@ -86,6 +56,7 @@ export default class Anathema {
         if (runContext.source == 'cli') {
           reportOnTask(task, "success")
         } else if (runContext.source == 'watcher') {
+          runContext.watcher.onTaskComplete(task)
         }
       }, (err: any) => {
         reportOnTask(task, "fail", err)
@@ -100,6 +71,14 @@ export default class Anathema {
             this,
             name, this.rootDirectory, resolve, reject
           )
+          try {
+            dashboard.init()
+          } catch(e) {
+            setTimeout(() => {
+              process.exit(0);
+            }, 200)
+            reject(e)
+          }
           func(dashboard)
         })
       } catch (e) {

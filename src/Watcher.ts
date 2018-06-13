@@ -2,6 +2,7 @@ import * as chokidar from 'chokidar'
 import * as path from 'path'
 import {Anathema} from './index'
 import Dashboard from './Dashboard'
+import Task from './Task'
 import * as debounce from 'debounce'
 
 export interface WatchEntry {
@@ -13,6 +14,8 @@ export interface WatchEntry {
 
 export default class Watcher {
   private instance: chokidar.FSWatcher
+  public tasksActive: string[]
+  public lastTaskHits: {[key: string]: Task}
 
   constructor (
     public anathemaInstance: Anathema,
@@ -23,6 +26,8 @@ export default class Watcher {
     public tasksToFire: string[],
     public watchOptions: any
   ) {
+    this.lastTaskHits = {}
+    this.tasksActive = []
     this.instance = chokidar.watch(
       path.join(rootDirectory, matcher),
       watchOptions || {}
@@ -33,12 +38,20 @@ export default class Watcher {
     this.instance.on('unlink', listener)
   }
 
+  onTaskComplete (task: Task) {
+    this.lastTaskHits[task.name] = task
+    this.tasksActive = this.tasksActive.filter((k) => k !== task.name)
+    this.dashboardInstance.updateAndRender()
+  }
+
   onFileChange (path: string) {
     this.tasksToFire.forEach((taskName) => {
+      this.tasksActive.push(taskName)
       this.anathemaInstance.run(taskName, {
         source: "watcher",
         watcher: this,
       })
     })
+    this.dashboardInstance.updateAndRender()
   }
 }
