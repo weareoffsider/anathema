@@ -14,9 +14,9 @@ interface RunContext {
   watcher?: Watcher
 }
 
-export function reportOnTask(task: Task, status: string, err?: any) {
+export function reportOnTask(task: Task) {
   const log = console.log
-  log(task.reportToString(status, err))
+  log(task.reportToString())
 }
 
 export default class Anathema {
@@ -53,14 +53,22 @@ export default class Anathema {
 
       return func(task).then((success: any) => {
         task.stats.endTimestamp = +new Date()
+        task.stats.result = "success"
+
         if (runContext.source == 'cli') {
-          reportOnTask(task, "success")
+          reportOnTask(task)
         } else if (runContext.source == 'watcher') {
           runContext.watcher.onTaskComplete(task)
         }
       }, (err: any) => {
-        reportOnTask(task, "fail", err)
-        throw err
+        task.stats.result = "fail"
+        task.stats.error = err
+        if (runContext.source == 'cli') {
+          reportOnTask(task)
+          throw err
+        } else {
+          runContext.watcher.onTaskFail(task)
+        }
       })
     } else if (this.dashboardRegister[name]) {
       const func = this.dashboardRegister[name]

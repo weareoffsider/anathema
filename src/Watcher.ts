@@ -1,4 +1,5 @@
 import * as chokidar from 'chokidar'
+import chalk from 'chalk'
 import * as path from 'path'
 import {Anathema} from './index'
 import Dashboard from './Dashboard'
@@ -38,9 +39,52 @@ export default class Watcher {
     this.instance.on('unlink', listener)
   }
 
+  outputStatusLine () {
+    if (this.tasksActive.length > 0) {
+      return (
+        this.name + " (" + this.matcher + ") " + 
+        "- running " + this.tasksActive.join(", ")
+      )
+    }
+
+    const hasFailures = Object.keys(this.lastTaskHits).some((key) => {
+      return this.lastTaskHits[key].stats.result == "fail"
+    })
+    const hasSuccess = Object.keys(this.lastTaskHits).some((key) => {
+      return this.lastTaskHits[key].stats.result == "success"
+    })
+
+    if (hasFailures) {
+      return chalk.red(
+        this.name + " (" + this.matcher + ") - failed"
+      )
+    } else if (hasSuccess) {
+      const maxTime = Math.max.apply(null, Object.keys(this.lastTaskHits).map((key) => {
+        return (
+          this.lastTaskHits[key].stats.endTimestamp - 
+          this.lastTaskHits[key].stats.beginTimestamp
+        )
+      }))
+      return chalk.green(
+        this.name + " (" + this.matcher + ") - success: " + maxTime + "ms"
+      )
+    } else {
+      return (
+        this.name + " (" + this.matcher + ")"
+      )
+    }
+  }
+
   onTaskComplete (task: Task) {
     this.lastTaskHits[task.name] = task
     this.tasksActive = this.tasksActive.filter((k) => k !== task.name)
+    this.dashboardInstance.updateAndRender()
+  }
+
+  onTaskFail (task: Task) {
+    this.lastTaskHits[task.name] = task
+    this.tasksActive = this.tasksActive.filter((k) => k !== task.name)
+    this.dashboardInstance.addToLog(task.reportToString())
     this.dashboardInstance.updateAndRender()
   }
 

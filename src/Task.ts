@@ -4,6 +4,8 @@ import {src} from './FilePipe'
 
 type MatcherDefinition = string | Array<string>
 interface TaskStats {
+  result?: string
+  error?: any
   beginTimestamp: number
   endTimestamp?: number
   filesMatched: string[]
@@ -29,14 +31,14 @@ export default class Task {
     return src(this, this.rootDirectory, matcher)
   }
 
-  reportToString(status: string, err?: any) {
+  reportToString() {
     const lines: string[] = []
     const log = (txt: string) => lines.push(txt)
 
-    if (status == "fail") {
+    if (this.stats.result == "fail") {
       log(chalk.red.bold('Task: ') + chalk.white.bold.underline(this.name))
       log(chalk.red("  Task failed to complete:"))
-      log(chalk.red('  ' + err.stack))
+      log(chalk.red('  ' + (this.stats.error.stack || this.stats.error)))
     } else {
       log(chalk.green.bold('Task: ') + chalk.white.bold.underline(this.name))
       log(chalk.green("  Task complete."))

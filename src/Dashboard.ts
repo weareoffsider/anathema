@@ -38,16 +38,7 @@ export default class Dashboard {
       tags: true,
       interactive: true,
       scrollable: true,
-      style: {
-        selected: {
-          bg: "white",
-          fg: "black",
-        },
-        item: {
-          fg: "white",
-          bg: "black",
-        },
-      },
+      invertSelected: true,
       border: {
         type: 'line',
       },
@@ -126,6 +117,10 @@ export default class Dashboard {
     }
   }
 
+  addToLog (str: string) {
+    this.logOutputBox.log(str)
+  }
+
   updateSelection (event: any) {
     this.dashState.selected = event.index - 2
     this.updateAndRender()
@@ -135,28 +130,18 @@ export default class Dashboard {
     const watcherItems: string[] = []
     Object.keys(this.dashState.watchers).forEach((key: string, ix: number) => {
       const watcher = this.dashState.watchers[key]
-      if (watcher.tasksActive.length > 0) {
-        watcherItems.push(
-          watcher.name + " (" + watcher.matcher + ") " + 
-          "- running " + watcher.tasksActive.join(", ")
-        )
-      } else {
-        watcherItems.push(
-          watcher.name + " (" + watcher.matcher + ")"
-        )
-      }
+      watcherItems.push(watcher.outputStatusLine())
 
       if (this.dashState.selected == ix) {
         let content = ""
         Object.keys(watcher.lastTaskHits).forEach((tk: string) =>{ 
           const task = watcher.lastTaskHits[tk]
-          content += task.reportToString("success")
+          content += task.reportToString()
         })
         this.taskOutputBox.setContent(content || "No task runs")
       }
     })
     this.watcherBox.setItems(watcherItems)
-
   }
 
   render () {
