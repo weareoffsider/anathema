@@ -1,5 +1,7 @@
 import {screen, list, listtable, log, box, Widgets} from 'blessed'
 import Watcher, {WatchEntry} from './Watcher'
+import RunOnceMonitor from './RunOnceMonitor'
+import TaskMonitor from './TaskMonitor'
 import {Anathema} from './index'
 import {inspect} from 'util'
 
@@ -19,7 +21,7 @@ export default class Dashboard {
     private crashPromise: any
   ) {
     this.dashState = {
-      watchers: {},
+      monitors: [],
       selected: null,
     }
   }
@@ -36,9 +38,14 @@ export default class Dashboard {
       keys: true,
       align: 'left',
       tags: true,
+      style: {
+        selected: {
+          underline: true,
+        },
+      },
       interactive: true,
       scrollable: true,
-      invertSelected: true,
+      invertSelected: false,
       border: {
         type: 'line',
       },
@@ -68,7 +75,7 @@ export default class Dashboard {
       label: 'Console Output',
       scrollbar: {
         track: {
-          bg: 'blue',
+          bg: 'red',
           fg: 'blue',
         },
       },
@@ -105,6 +112,7 @@ export default class Dashboard {
     this.oldLogFuncs = {
       log: console.log,
       warn: console.warn,
+      error: console.error,
     }
 
     console.log = (...args: any[]) => {
@@ -112,6 +120,10 @@ export default class Dashboard {
       this.updateAndRender()
     }
     console.warn = (...args: any[]) => {
+      this.logOutputBox.log(args.map((arg) => inspect(arg)).join(', '))
+      this.updateAndRender()
+    }
+    console.error = (...args: any[]) => {
       this.logOutputBox.log(args.map((arg) => inspect(arg)).join(', '))
       this.updateAndRender()
     }
@@ -127,25 +139,46 @@ export default class Dashboard {
   }
 
   update () {
-    const watcherItems: string[] = []
-    Object.keys(this.dashState.watchers).forEach((key: string, ix: number) => {
-      const watcher = this.dashState.watchers[key]
-      watcherItems.push(watcher.outputStatusLine())
+    const monitorItems: string[] = []
+    this.dashState.monitors.forEach((monitor: any, ix: number) => {
+      if (monitor instanceof TaskMonitor) {
+        monitorItems.push(monitor.outputStatusLine())
 
-      if (this.dashState.selected == ix) {
-        let content = ""
-        Object.keys(watcher.lastTaskHits).forEach((tk: string) =>{ 
-          const task = watcher.lastTaskHits[tk]
-          content += task.reportToString()
-        })
-        this.taskOutputBox.setContent(content || "No task runs")
+        if (this.dashState.selected == ix) {
+          let content = ""
+          Object.keys(monitor.lastTaskHits).forEach((tk: string) =>{ 
+            const task = monitor.lastTaskHits[tk]
+            content += task.reportToString() + "\n\n"
+          })
+          this.taskOutputBox.setContent(content || "No output.")
+        }
       }
     })
-    this.watcherBox.setItems(watcherItems)
+    this.watcherBox.setItems((monitorItems as any))
   }
 
   render () {
     this.screen.render()
+  }
+
+  initial (taskIds: string[]) {
+    this.dashState.monitors.push(new RunOnceMonitor(
+      this.anathemaInstance,
+      this,
+      "initial",
+      this.rootDirectory,
+      taskIds
+    ))
+  }
+
+  post (taskIds: string[]) {
+    this.dashState.monitors.push(new RunOnceMonitor(
+      this.anathemaInstance,
+      this,
+      "post",
+      this.rootDirectory,
+      taskIds
+    ))
   }
 
   watch (watcherIds: string[]) {
@@ -155,7 +188,7 @@ export default class Dashboard {
         throw new Error(`Watcher named '${watcherId}' not found`)
       }
 
-      this.dashState.watchers[watcherId] = new Watcher(
+      this.dashState.monitors.push(new Watcher(
         this.anathemaInstance,
         this,
         watcherId,
@@ -163,10 +196,46 @@ export default class Dashboard {
         watchEntry.matcher,
         watchEntry.tasks,
         watchEntry.options
-      )
+      ))
     })
     this.update()
     this.render()
+  }
+
+  run() {
+    const initial: RunOnceMonitor[] = this.dashState.monitors.filter((monitor: any) => {
+      if (monitor instanceof RunOnceMonitor) {
+        return monitor.runStage == "initial"
+      }
+      return false
+    })
+
+    const posts: RunOnceMonitor[] = this.dashState.monitors.filter((monitor: any) => {
+      if (monitor instanceof RunOnceMonitor) {
+        return monitor.runStage == "post"
+      }
+      return false
+    })
+    
+    const watchers: Watcher[] = this.dashState.monitors.filter((monitor: any) => {
+      if (monitor instanceof Watcher) {
+        return true
+      }
+      return false
+    })
+
+    return Promise.all(initial.map((runOnce) => {
+      const result = runOnce.run()
+      return result
+    })).then(() => {
+      return Promise.all( watchers.map((watcher) => {
+        return watcher.run()
+      }))
+    }).then(() => {
+      return Promise.all( posts.map((runOnce) => {
+        return runOnce.run()
+      }))
+    })
   }
 
   updateAndRender () {

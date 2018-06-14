@@ -6,10 +6,10 @@ var autoprefixer = require('autoprefixer')
 anathema.watcher(
   "styles",
   "usage/src/**/*.less",
-  ["styles"]
+  ["styles"],
+  { runOnStart: true }
 )
 anathema.task("styles", function (task) {
-  console.log("I just ran a styles")
   return task.src("usage/src/app.less")
     .transform(
       (file) => less.render(file.data, {strictMath: true}),

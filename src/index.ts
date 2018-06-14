@@ -6,12 +6,14 @@ import * as mkdirp from 'mkdirp'
 import chalk from 'chalk'
 import Dashboard from './Dashboard'
 import Task from './Task'
+import TaskMonitor from './TaskMonitor'
 import Watcher, {WatchEntry} from './Watcher'
 
 interface RunContext {
   source: string
   dashboard?: Dashboard
   watcher?: Watcher
+  monitor?: TaskMonitor
 }
 
 export function reportOnTask(task: Task) {
@@ -59,6 +61,8 @@ export default class Anathema {
           reportOnTask(task)
         } else if (runContext.source == 'watcher') {
           runContext.watcher.onTaskComplete(task)
+        } else if (runContext.source == 'monitor') {
+          runContext.monitor.onTaskComplete(task)
         }
       }, (err: any) => {
         task.stats.result = "fail"
@@ -66,8 +70,10 @@ export default class Anathema {
         if (runContext.source == 'cli') {
           reportOnTask(task)
           throw err
-        } else {
+        } else if (runContext.source == 'watcher') {
           runContext.watcher.onTaskFail(task)
+        } else if (runContext.source == 'monitor') {
+          runContext.monitor.onTaskFail(task)
         }
       })
     } else if (this.dashboardRegister[name]) {
@@ -88,6 +94,7 @@ export default class Anathema {
             reject(e)
           }
           func(dashboard)
+          dashboard.run()
         })
       } catch (e) {
         return Promise.reject(e)

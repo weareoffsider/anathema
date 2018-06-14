@@ -6,50 +6,26 @@ import {Anathema} from './index'
 import Dashboard from './Dashboard'
 import Task from './Task'
 import TaskMonitor from './TaskMonitor'
-import * as debounce from 'debounce'
 
-export interface WatchEntry {
-  name: string
-  matcher: string
-  options: any
-  tasks: string[]
-}
-
-export default class Watcher extends TaskMonitor {
-  private instance: chokidar.FSWatcher
+export default class RunOnceMonitor extends TaskMonitor {
   public tasksActive: string[]
   public lastTaskHits: {[key: string]: Task}
 
   constructor (
     public anathemaInstance: Anathema,
     public dashboardInstance: Dashboard | null,
-    public name: string,
+    public runStage: string,
     public rootDirectory: string,
-    public matcher: string,
     public tasksToFire: string[],
-    public watchOptions: any = {},
   ) {
     super()
   }
 
-  run () {
-    this.instance = chokidar.watch(
-      path.join(this.rootDirectory, this.matcher),
-      this.watchOptions.chokidarOptions || {}
-    )
-    const listener = debounce(this.onFileChange.bind(this), 300)
-    this.instance.on('change', listener)
-    this.instance.on('unlink', listener)
-
-    if (this.watchOptions.runOnStart) {
-      return this.runTasks()
-    }
-  }
-
   outputStatusLine () {
+    const name = this.runStage + " (" + this.tasksToFire.join(', ') + ")"
     if (this.tasksActive.length > 0) {
       return ("{yellow-fg}" +
-        this.name + " (" + this.matcher + ") " + 
+        name + " " + 
         "- running " + this.tasksActive.join(", ")
       + "{/}")
     }
@@ -63,7 +39,7 @@ export default class Watcher extends TaskMonitor {
 
     if (hasFailures) {
       return ("{red-fg}" +
-        this.name + " (" + this.matcher + ") - failed"
+        name + " - failed"
       + "{/}")
     } else if (hasSuccess) {
       const maxTime = Math.max.apply(null, Object.keys(this.lastTaskHits).map((key) => {
@@ -73,16 +49,17 @@ export default class Watcher extends TaskMonitor {
         )
       }))
       return ("{green-fg}" +
-        this.name + " (" + this.matcher + ") - success: " + maxTime + "ms"
+        name + " - success: " + maxTime + "ms"
       + "{/}")
     } else {
       return ("{white-fg}" +
-        this.name + " (" + this.matcher + ")"
+        name
       + "{/}")
     }
   }
 
-  onFileChange (path: string) {
-    this.runTasks()
+
+  run () {
+    return this.runTasks()
   }
 }
