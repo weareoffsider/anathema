@@ -8,8 +8,9 @@ import Dashboard from './Dashboard'
 import Task from './Task'
 import TaskMonitor from './TaskMonitor'
 import Watcher, {WatchEntry} from './Watcher'
+import CustomMonitor from './CustomMonitor'
 
-interface RunContext {
+export interface RunContext {
   source: string
   dashboard?: Dashboard
   watcher?: Watcher
@@ -24,13 +25,16 @@ export function reportOnTask(task: Task) {
 export default class Anathema {
   public dashboardRegister: {[key: string]: any}
   public taskRegister: {[key: string]: any}
+  public monitorRegister: {[key: string]: CustomMonitor}
   public watchRegister: {[key: string]: WatchEntry}
+  public activeDashboard: Dashboard
   public rootDirectory: string
   public config: any
 
   constructor (config: any = null) {
     this.taskRegister = {}
     this.watchRegister = {}
+    this.monitorRegister = {}
     this.dashboardRegister = {}
     this.rootDirectory = null
     this.config = config
@@ -44,14 +48,24 @@ export default class Anathema {
     this.watchRegister[name] = {name, matcher, tasks, options}
   }
 
+  monitor (name: string) {
+    const cmonitor = new CustomMonitor(this, name)
+    this.monitorRegister[name] = cmonitor
+    return cmonitor
+  }
+
   task (name: string, func: any) {
     this.taskRegister[name] = func
   }
 
   run (name: string, runContext: RunContext) {
+    if (this.activeDashboard) {
+      runContext.dashboard = this.activeDashboard
+    }
+
     if (this.taskRegister[name]) {
       const func = this.taskRegister[name]
-      const task = new Task(name, this.rootDirectory)
+      const task = new Task(name, this.rootDirectory, runContext)
 
       return func(task).then((success: any) => {
         task.stats.endTimestamp = +new Date()
@@ -85,6 +99,7 @@ export default class Anathema {
             this,
             name, this.rootDirectory, resolve, reject
           )
+          this.activeDashboard = dashboard
           try {
             dashboard.init()
           } catch(e) {

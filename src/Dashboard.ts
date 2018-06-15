@@ -4,6 +4,7 @@ import RunOnceMonitor from './RunOnceMonitor'
 import TaskMonitor from './TaskMonitor'
 import {Anathema} from './index'
 import {inspect} from 'util'
+import * as process from 'process'
 
 export default class Dashboard {
   public dashState: any
@@ -12,6 +13,7 @@ export default class Dashboard {
   private taskOutputBox: Widgets.ScrollableBoxElement
   private logOutputBox: Widgets.Log
   private oldLogFuncs: any
+  private startupSchedule: any[][]
 
   constructor (
     public anathemaInstance: Anathema,
@@ -20,6 +22,7 @@ export default class Dashboard {
     private endPromise: any,
     private crashPromise: any
   ) {
+    this.startupSchedule = []
     this.dashState = {
       monitors: [],
       selected: null,
@@ -115,18 +118,35 @@ export default class Dashboard {
       error: console.error,
     }
 
+    function outputItem (item: any) {
+      if (typeof item == "string") {
+        return item
+      } else {
+        return inspect(item)
+      }
+    }
+
     console.log = (...args: any[]) => {
-      this.logOutputBox.log(args.map((arg) => inspect(arg)).join(', '))
+      this.logOutputBox.log(args.map((arg) => outputItem(arg)).join(', '))
       this.updateAndRender()
     }
     console.warn = (...args: any[]) => {
-      this.logOutputBox.log(args.map((arg) => inspect(arg)).join(', '))
+      this.logOutputBox.log(args.map((arg) => outputItem(arg)).join(', '))
       this.updateAndRender()
     }
     console.error = (...args: any[]) => {
-      this.logOutputBox.log(args.map((arg) => inspect(arg)).join(', '))
+      this.logOutputBox.log(args.map((arg) => outputItem(arg)).join(', '))
       this.updateAndRender()
     }
+    
+    process.on('uncaughtException', (err) => {
+      console.log = this.oldLogFuncs.log
+      console.warn = this.oldLogFuncs.error
+      console.error = this.oldLogFuncs.warn
+      this.screen.destroy()
+      console.error(err.stack || err)
+      process.exit(1)
+    })
   }
 
   addToLog (str: string) {
@@ -145,11 +165,7 @@ export default class Dashboard {
         monitorItems.push(monitor.outputStatusLine())
 
         if (this.dashState.selected == ix) {
-          let content = ""
-          Object.keys(monitor.lastTaskHits).forEach((tk: string) =>{ 
-            const task = monitor.lastTaskHits[tk]
-            content += task.reportToString() + "\n\n"
-          })
+          let content = monitor.outputTaskData()
           this.taskOutputBox.setContent(content || "No output.")
         }
       }
@@ -161,34 +177,43 @@ export default class Dashboard {
     this.screen.render()
   }
 
-  initial (taskIds: string[]) {
-    this.dashState.monitors.push(new RunOnceMonitor(
-      this.anathemaInstance,
-      this,
-      "initial",
-      this.rootDirectory,
-      taskIds
-    ))
+  monitor (monitorIds: string[]) {
+    const monitors = monitorIds.map((monitorId) => {
+      const customMonitor = this.anathemaInstance.monitorRegister[monitorId]
+      customMonitor.setMonitorContext(
+        this,
+        this.rootDirectory
+      )
+      return customMonitor
+    })
+
+    this.dashState.monitors = this.dashState.monitors.concat(monitors)
+    this.startupSchedule.push(monitors)
+
+    this.update()
+    this.render()
   }
 
-  post (taskIds: string[]) {
-    this.dashState.monitors.push(new RunOnceMonitor(
+  task (taskIds: string[]) {
+    const runOnceMonitor = new RunOnceMonitor(
       this.anathemaInstance,
       this,
-      "post",
       this.rootDirectory,
       taskIds
-    ))
+    )
+
+    this.dashState.monitors.push(runOnceMonitor)
+    this.startupSchedule.push([runOnceMonitor])
   }
 
   watch (watcherIds: string[]) {
-    watcherIds.forEach((watcherId) => {
+    const watchers = watcherIds.map((watcherId) => {
       const watchEntry = this.anathemaInstance.watchRegister[watcherId]
       if (!watchEntry) {
         throw new Error(`Watcher named '${watcherId}' not found`)
       }
 
-      this.dashState.monitors.push(new Watcher(
+      return new Watcher(
         this.anathemaInstance,
         this,
         watcherId,
@@ -196,46 +221,28 @@ export default class Dashboard {
         watchEntry.matcher,
         watchEntry.tasks,
         watchEntry.options
-      ))
+      )
     })
+
+    this.dashState.monitors = this.dashState.monitors.concat(watchers)
+    this.startupSchedule.push(watchers)
+
     this.update()
     this.render()
   }
 
   run() {
-    const initial: RunOnceMonitor[] = this.dashState.monitors.filter((monitor: any) => {
-      if (monitor instanceof RunOnceMonitor) {
-        return monitor.runStage == "initial"
-      }
-      return false
+    let promise: Promise<any> = Promise.resolve(true)
+
+    this.startupSchedule.forEach((monitors) => {
+      promise = promise.then(() => {
+        return Promise.all(monitors.map((monitor) => {
+          return monitor.run()
+        }))
+      })
     })
 
-    const posts: RunOnceMonitor[] = this.dashState.monitors.filter((monitor: any) => {
-      if (monitor instanceof RunOnceMonitor) {
-        return monitor.runStage == "post"
-      }
-      return false
-    })
-    
-    const watchers: Watcher[] = this.dashState.monitors.filter((monitor: any) => {
-      if (monitor instanceof Watcher) {
-        return true
-      }
-      return false
-    })
-
-    return Promise.all(initial.map((runOnce) => {
-      const result = runOnce.run()
-      return result
-    })).then(() => {
-      return Promise.all( watchers.map((watcher) => {
-        return watcher.run()
-      }))
-    }).then(() => {
-      return Promise.all( posts.map((runOnce) => {
-        return runOnce.run()
-      }))
-    })
+    return promise
   }
 
   updateAndRender () {

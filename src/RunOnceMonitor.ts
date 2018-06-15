@@ -14,7 +14,6 @@ export default class RunOnceMonitor extends TaskMonitor {
   constructor (
     public anathemaInstance: Anathema,
     public dashboardInstance: Dashboard | null,
-    public runStage: string,
     public rootDirectory: string,
     public tasksToFire: string[],
   ) {
@@ -22,7 +21,7 @@ export default class RunOnceMonitor extends TaskMonitor {
   }
 
   outputStatusLine () {
-    const name = this.runStage + " (" + this.tasksToFire.join(', ') + ")"
+    const name = "Run " + this.tasksToFire.join(', ') + ""
     if (this.tasksActive.length > 0) {
       return ("{yellow-fg}" +
         name + " " + 

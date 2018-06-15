@@ -1,6 +1,6 @@
-
 import chalk from 'chalk'
 import {src} from './FilePipe'
+import {RunContext} from './index'
 
 type MatcherDefinition = string | Array<string>
 interface TaskStats {
@@ -16,8 +16,9 @@ export default class Task {
   public name: string
   public rootDirectory: string
   public stats: TaskStats
+  public runContext: RunContext
 
-  constructor (name: string, rootDir: string) {
+  constructor (name: string, rootDir: string, runContext: RunContext) {
     this.name = name
     this.stats = {
       beginTimestamp: +new Date(),
@@ -25,6 +26,7 @@ export default class Task {
       filesOutput: [],
     }
     this.rootDirectory = rootDir
+    this.runContext = runContext
   }
 
   src (matcher: MatcherDefinition) {

@@ -2,6 +2,7 @@ var anathema = require('./config')
 const LocalWebServer = require('local-web-server')
 
 require('./styles.js')
+require('./scripts.js')
 require('./containers.js')
 require('./dependencies.js')
 
@@ -32,9 +33,11 @@ anathema.task('devServer', function(task) {
 })
 
 anathema.dashboard("default", function (dashboard) {
-  dashboard.initial(['clean', 'wait'])
+  dashboard.task(['clean', 'wait'])
+  dashboard.task(['scripts'])
   dashboard.watch(['styles', 'containers'])
-  dashboard.post(['devServer'])
+  dashboard.monitor(['webpack'])
+  dashboard.task(['devServer'])
 })
 
 module.exports = anathema

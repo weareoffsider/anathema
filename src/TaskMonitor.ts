@@ -18,6 +18,15 @@ export default class TaskMonitor {
     return "{fg-red}Unconfigured monitor{/}"
   }
 
+  outputTaskData () {
+    let content = ""
+    Object.keys(this.lastTaskHits).forEach((tk: string) =>{ 
+      const task = this.lastTaskHits[tk]
+      content += task.reportToString() + "\n\n"
+    })
+    return content
+  }
+
   onTaskComplete (task: Task) {
     this.lastTaskHits[task.name] = task
     this.tasksActive = this.tasksActive.filter((k) => k !== task.name)
