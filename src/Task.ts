@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import {src} from './FilePipe'
+import {src, srcFromString, StringToFileDef} from './FilePipe'
 import {RunContext} from './index'
 
 type MatcherDefinition = string | Array<string>
@@ -41,6 +41,10 @@ export default class Task {
 
   src (matcher: MatcherDefinition) {
     return src(this, this.rootDirectory, matcher)
+  }
+
+  srcFromString (fileDef: StringToFileDef) {
+    return srcFromString(this, this.rootDirectory, fileDef)
   }
   
   addDependencyResult (task: Task) {

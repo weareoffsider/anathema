@@ -86,7 +86,13 @@ export default class Anathema {
       return Promise.all(dependencies.map((depName: string) => {
         return this.run(depName, {source: "task", parentTask: task})
       })).then(() => {
-        return func(task).then((success: any) => {
+        let result = func(task)
+        if (!result) {
+          result = Promise.reject(new Error(
+            `Task ${name} does not return anything`
+          ))
+        }
+        return result.then((success: any) => {
           task.stats.endTimestamp = +new Date()
           task.stats.result = "success"
 

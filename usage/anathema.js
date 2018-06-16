@@ -1,5 +1,6 @@
 var anathema = require('./config')
 const LocalWebServer = require('local-web-server')
+const gitRev = require('git-rev')
 
 require('./styles.js')
 require('./scripts.js')
@@ -22,6 +23,18 @@ anathema.task('wait', function(task) {
   })
 })
 
+anathema.task('version-json', function(task) {
+  return new Promise((resolve, reject) => {
+    gitRev.short((str) => {
+      task.srcFromString({
+        name: 'version.json',
+        data: '{"version": "' + str + '"}',
+      }).output('usage/out')
+        .then(resolve, reject)
+    })
+  })
+})
+
 anathema.task('devServer', function(task) {
   const localWebServer = new LocalWebServer()
   const server = localWebServer.listen({
@@ -34,7 +47,7 @@ anathema.task('devServer', function(task) {
 
 anathema.dashboard("default", function (dashboard) {
   dashboard.task(['clean', 'wait'])
-  dashboard.task(['scripts'])
+  dashboard.task(['scripts', 'version-json'])
   dashboard.watch(['styles', 'containers'])
   dashboard.monitor(['webpack'])
   dashboard.task(['devServer'])

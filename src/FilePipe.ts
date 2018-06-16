@@ -12,6 +12,12 @@ interface WorkingFile {
   data: any
 }
 
+export interface StringToFileDef {
+  name: string
+  data: string
+  directory?: string
+}
+
 type MatcherDefinition = string | Array<string>
 
 async function loadFile (filename: string) {
@@ -49,6 +55,11 @@ export function src (task: Task, rootDir: string, matcher: MatcherDefinition) {
   return new FilePipe(task, rootDir, matcher)
 }
 
+export function srcFromString(task: Task, rootDir: string, fileDef: StringToFileDef) {
+  return new FilePipe(task, rootDir, null)
+    .addFileFromString(fileDef)
+}
+
 function getCommonBaseFromWorkingFiles(files: WorkingFile[]) {
   if (files.length == 0) {
     return ""
@@ -72,11 +83,13 @@ export class FilePipe {
   public task: Task
   private callList: Array<any>
 
-  constructor (task: Task, root: string, matcher: MatcherDefinition) {
+  constructor (task: Task, root: string, matcher?: MatcherDefinition) {
     this.task = task
     this.root = root
 
-    if (typeof matcher == "string") {
+    if (matcher == null) {
+      this.promise = Promise.resolve([])
+    } else if (typeof matcher == "string") {
       this.promise = getWorkingFiles(task, root, matcher)
     } else {
       this.promise = Promise.all(matcher.map((matchString: string) => {
@@ -97,6 +110,18 @@ export class FilePipe {
       })
       return workingFiles
     })
+  }
+
+  addFileFromString(fileDef: StringToFileDef) {
+    this.promise = this.promise.then((result) => {
+      result.push({
+        name: fileDef.name,
+        directory: fileDef.directory || "",
+        data: fileDef.data,
+      })
+      return result
+    })
+    return this
   }
 
   transform (...args: any[]) {
