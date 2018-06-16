@@ -6,17 +6,28 @@ var autoprefixer = require('autoprefixer')
 anathema.watcher(
   "styles",
   "usage/src/**/*.less",
-  ["styles"],
+  ["styles:post"],
   { runOnStart: true }
 )
-anathema.task("styles", function (task) {
+anathema.task("styles:less", function (task) {
   return task.src("usage/src/app.less")
     .transform(
       (file) => less.render(file.data, {strictMath: true}),
-      (file, out) => postcss([autoprefixer]).process(out.css, {from: undefined}),
       (file, out) => {
         file.data = out.css
-        file.name = file.name.replace('.less', '.css')
+        file.name = file.name.replace('.less', '.less.css')
+      }
+    )
+    .output('usage/out')
+})
+
+anathema.task("styles:post", ["styles:less"], function (task) {
+  return task.src("usage/out/app.less.css")
+    .transform(
+      (file) => postcss([autoprefixer]).process(file.data, {from: undefined}),
+      (file, out) => {
+        file.data = out.css
+        file.name = file.name.replace('.less.css', '.final.css')
       }
     )
     .output('usage/out')

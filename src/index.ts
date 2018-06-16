@@ -5,13 +5,14 @@ import {Glob} from 'glob'
 import * as mkdirp from 'mkdirp'
 import chalk from 'chalk'
 import Dashboard from './Dashboard'
-import Task from './Task'
+import Task, {TaskEntry} from './Task'
 import TaskMonitor from './TaskMonitor'
 import Watcher, {WatchEntry} from './Watcher'
 import CustomMonitor from './CustomMonitor'
 
 export interface RunContext {
   source: string
+  parentTask?: Task
   dashboard?: Dashboard
   watcher?: Watcher
   monitor?: TaskMonitor
@@ -54,8 +55,22 @@ export default class Anathema {
     return cmonitor
   }
 
-  task (name: string, func: any) {
-    this.taskRegister[name] = func
+  task (name: string, dependencies: string[], func: any): void
+  task (name: string, func: any): void
+  task (...args: any[]) {
+    if (args.length > 3) {
+      throw new Error("Task creation should have no more than 3 arguments")
+    } else if (args.length == 3) {
+      const [name, dependencies, func] = args
+
+      this.taskRegister[name] = {name, dependencies, func}
+    } else if (args.length == 2) {
+      const [name, func] = args
+
+      this.taskRegister[name] = {name, dependencies: [], func}
+    } else {
+      throw new Error("Task creation needs at least two arguments (name & function)")
+    }
   }
 
   run (name: string, runContext: RunContext) {
@@ -64,25 +79,49 @@ export default class Anathema {
     }
 
     if (this.taskRegister[name]) {
-      const func = this.taskRegister[name]
+      const taskEntry = this.taskRegister[name]
+      const {dependencies, func} = taskEntry
       const task = new Task(name, this.rootDirectory, runContext)
 
-      return func(task).then((success: any) => {
-        task.stats.endTimestamp = +new Date()
-        task.stats.result = "success"
+      return Promise.all(dependencies.map((depName: string) => {
+        return this.run(depName, {source: "task", parentTask: task})
+      })).then(() => {
+        return func(task).then((success: any) => {
+          task.stats.endTimestamp = +new Date()
+          task.stats.result = "success"
 
-        if (runContext.source == 'cli') {
-          reportOnTask(task)
-        } else if (runContext.source == 'watcher') {
-          runContext.watcher.onTaskComplete(task)
-        } else if (runContext.source == 'monitor') {
-          runContext.monitor.onTaskComplete(task)
-        }
+          if (runContext.source == 'cli') {
+            reportOnTask(task)
+          } else if (runContext.source == 'task') {
+            runContext.parentTask.addDependencyResult(task)
+          } else if (runContext.source == 'watcher') {
+            runContext.watcher.onTaskComplete(task)
+          } else if (runContext.source == 'monitor') {
+            runContext.monitor.onTaskComplete(task)
+          }
+        }, (err: any) => {
+          task.stats.result = "fail"
+          task.stats.error = err
+          if (runContext.source == 'cli') {
+            reportOnTask(task)
+            throw err
+          } else if (runContext.source == 'task') {
+            runContext.parentTask.addDependencyResult(task)
+            throw err
+          } else if (runContext.source == 'watcher') {
+            runContext.watcher.onTaskFail(task)
+          } else if (runContext.source == 'monitor') {
+            runContext.monitor.onTaskFail(task)
+          }
+        })
       }, (err: any) => {
         task.stats.result = "fail"
         task.stats.error = err
         if (runContext.source == 'cli') {
           reportOnTask(task)
+          throw err
+        } else if (runContext.source == 'task') {
+          runContext.parentTask.addDependencyResult(task)
           throw err
         } else if (runContext.source == 'watcher') {
           runContext.watcher.onTaskFail(task)

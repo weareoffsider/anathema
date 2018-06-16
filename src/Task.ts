@@ -3,13 +3,22 @@ import {src} from './FilePipe'
 import {RunContext} from './index'
 
 type MatcherDefinition = string | Array<string>
-interface TaskStats {
+
+export interface TaskEntry {
+  name: string
+  dependencies: string[]
+  func: any
+}
+
+
+export interface TaskStats {
   result?: string
   error?: any
   beginTimestamp: number
   endTimestamp?: number
   filesMatched: string[]
   filesOutput: string[]
+  dependencies: Task[]
 }
 
 export default class Task {
@@ -24,6 +33,7 @@ export default class Task {
       beginTimestamp: +new Date(),
       filesMatched: [],
       filesOutput: [],
+      dependencies: [],
     }
     this.rootDirectory = rootDir
     this.runContext = runContext
@@ -32,38 +42,67 @@ export default class Task {
   src (matcher: MatcherDefinition) {
     return src(this, this.rootDirectory, matcher)
   }
+  
+  addDependencyResult (task: Task) {
+    this.stats.dependencies.push(task)
+  }
 
-  reportToString() {
+  reportToString(indent: string = "", reportAsDependency: boolean = false) {
     const lines: string[] = []
     const log = (txt: string) => lines.push(txt)
 
-    if (this.stats.result == "fail") {
-      log(chalk.red.bold('Task: ') + chalk.white.bold.underline(this.name))
-      log(chalk.red("  Task failed to complete:"))
-      log(chalk.red('  ' + (this.stats.error.stack || this.stats.error)))
+    // header
+    if (reportAsDependency) {
+      if (this.stats.result == "fail") {
+        log(chalk.red.bold(indent + 'Dependency: ') + chalk.white.bold.underline(this.name))
+      } else {
+        log(chalk.green.bold(indent + 'Dependency: ') + chalk.white.bold.underline(this.name))
+      }
     } else {
-      log(chalk.green.bold('Task: ') + chalk.white.bold.underline(this.name))
-      log(chalk.green("  Task complete."))
+      if (this.stats.result == "fail") {
+        log(chalk.red.bold(indent + 'Task: ') + chalk.white.bold.underline(this.name))
+      } else {
+        log(chalk.green.bold(indent + 'Task: ') + chalk.white.bold.underline(this.name))
+      }
+    }
+
+    // state line
+    if (this.stats.result == "fail") {
+      log(chalk.red(indent + "  Task failed to complete:"))
+      log(chalk.red(indent + '  ' + (this.stats.error.stack || this.stats.error)))
+    } else {
+      if (this.stats.dependencies.length > 0) {
+        const executedDependencies = this.stats.dependencies.map((t) => t.name)
+        log(chalk.green(indent + "  Task completed with dependencies: " + executedDependencies.join(", ")))
+      } else {
+        log(chalk.green(indent + "  Task completed."))
+      }
     }
 
     if (this.stats.filesMatched.length > 0) {
-      log(chalk.cyan('  -> input files'))
+      log(chalk.cyan(indent + '  -> input files'))
       this.stats.filesMatched.forEach((file: string) => {
         const shortPath = file.replace(this.rootDirectory, '')
-        log('    - ' + shortPath)
+        log(indent + '    - ' + shortPath)
       })
     } else {
-      log(chalk.red.bold('  -> no input files were found'))
+      log(chalk.red.bold(indent + '  -> no input files were found'))
     }
 
     if (this.stats.filesOutput.length > 0) {
-      log(chalk.cyan('  <- output files'))
+      log(chalk.cyan(indent + '  <- output files'))
       this.stats.filesOutput.forEach((file: string) => {
         const shortPath = file.replace(this.rootDirectory, '')
-        log('    - ' + shortPath)
+        log(indent + '    - ' + shortPath)
       })
     } else {
-      log(chalk.red.bold('  <- no files were output'))
+      log(chalk.red.bold(indent + '  <- no files were output'))
+    }
+    if (this.stats.dependencies.length > 0) {
+      log(indent + '')
+      this.stats.dependencies.forEach((task) => {
+        log(task.reportToString(indent + "  ", true))
+      })
     }
 
     return lines.join('\n')
