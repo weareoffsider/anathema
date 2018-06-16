@@ -13,6 +13,10 @@
   "bin": {
     "anathema": "./node/cli.js"
   },
+  "repository" : {
+    "type" : "git",
+    "url" : "https://github.com/weareoffsider/anathema.git"
+  },
   "scripts": {
     "build": "tsc",
     "test-anathema": "./node/cli.js --config usage/anathema.js",
