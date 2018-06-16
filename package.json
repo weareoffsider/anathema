@@ -38,6 +38,7 @@
     "async": "2.6.1",
     "autoprefixer": "8.6.0",
     "del": "^3.0.0",
+    "git-rev": "^0.2.1",
     "less": "3.0.4",
     "local-web-server": "2.5.2",
     "postcss": "6.0.22",
