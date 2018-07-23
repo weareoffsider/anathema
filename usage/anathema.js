@@ -38,7 +38,7 @@ anathema.task('version-json', function(task) {
 anathema.task('devServer', function(task) {
   const localWebServer = new LocalWebServer()
   const server = localWebServer.listen({
-    port: 8080,
+    port: 8090,
     directory: anathema.rootDirectory + "/usage/out",
   })
   console.log("Server running at localhost:8080")

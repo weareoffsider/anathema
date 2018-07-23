@@ -5,7 +5,7 @@ var autoprefixer = require('autoprefixer')
 
 anathema.watcher(
   "styles",
-  "usage/src/**/*.less",
+  "usage/src/**/*.{less,lass}",
   ["styles:post"],
   { runOnStart: true }
 )

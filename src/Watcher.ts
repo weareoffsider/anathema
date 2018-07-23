@@ -47,9 +47,13 @@ export default class Watcher extends TaskMonitor {
   }
 
   outputStatusLine () {
+    const escapedMatcher = this.matcher.replace('{', '_open_')
+                                       .replace('}', '_close_')
+                                       .replace('_open_', '{open}')
+                                       .replace('_close_', '{close}')
     if (this.tasksActive.length > 0) {
       return ("{yellow-fg}" +
-        this.name + " (" + this.matcher + ") " + 
+        this.name + " (" + escapedMatcher + ") " + 
         "- running " + this.tasksActive.join(", ")
       + "{/}")
     }
@@ -63,7 +67,7 @@ export default class Watcher extends TaskMonitor {
 
     if (hasFailures) {
       return ("{red-fg}" +
-        this.name + " (" + this.matcher + ") - failed"
+        this.name + " (" + escapedMatcher + ") - failed"
       + "{/}")
     } else if (hasSuccess) {
       const maxTime = Math.max.apply(null, Object.keys(this.lastTaskHits).map((key) => {
@@ -73,11 +77,11 @@ export default class Watcher extends TaskMonitor {
         )
       }))
       return ("{green-fg}" +
-        this.name + " (" + this.matcher + ") - success: " + maxTime + "ms"
+        this.name + " (" + escapedMatcher + ") - success: " + maxTime + "ms"
       + "{/}")
     } else {
       return ("{white-fg}" +
-        this.name + " (" + this.matcher + ")"
+        this.name + " (" + escapedMatcher + ")"
       + "{/}")
     }
   }
