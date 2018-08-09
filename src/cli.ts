@@ -43,4 +43,5 @@ Promise.all(tasksToRun.map((name: string) => {
   // spinner.stop()
   console.log(chalk.red.bold("Anathema encountered a runtime error:"))
   console.log(chalk.red('  ' + err.stack))
+  process.exitCode = 1
 })
