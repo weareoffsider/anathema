@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import {src, srcFromString, StringToFileDef} from './FilePipe'
+import {IOptions} from 'glob'
 import {RunContext} from './index'
 
 type MatcherDefinition = string | Array<string>
@@ -39,8 +40,8 @@ export default class Task {
     this.runContext = runContext
   }
 
-  src (matcher: MatcherDefinition) {
-    return src(this, this.rootDirectory, matcher)
+  src (matcher: MatcherDefinition, options?: IOptions) {
+    return src(this, this.rootDirectory, matcher, options)
   }
 
   srcFromString (fileDef: StringToFileDef) {

@@ -1,6 +1,6 @@
 import * as path from 'path'
 import {readFile, readdir, writeFile} from 'fs'
-import {Glob} from 'glob'
+import {Glob, IOptions} from 'glob'
 import Task from './Task'
 import * as mkdirp from 'mkdirp'
 
@@ -36,9 +36,9 @@ async function loadFile (filename: string) {
   })
 }
 
-async function getWorkingFiles (task: Task, root: string, matcher: string) {
+async function getWorkingFiles (task: Task, root: string, matcher: string, options?: IOptions) {
   return new Promise<Array<WorkingFile>>((resolve, reject) => {
-    new Glob(path.join(root, matcher), (err, files) => {
+    new Glob(path.join(root, matcher), options || {}, (err, files) => {
       if (err) return reject(err)
 
       files.forEach(file => task.stats.filesMatched.push(file))
@@ -51,8 +51,8 @@ async function getWorkingFiles (task: Task, root: string, matcher: string) {
   })
 }
 
-export function src (task: Task, rootDir: string, matcher: MatcherDefinition) {
-  return new FilePipe(task, rootDir, matcher)
+export function src (task: Task, rootDir: string, matcher: MatcherDefinition, options?: IOptions) {
+  return new FilePipe(task, rootDir, matcher, options)
 }
 
 export function srcFromString(task: Task, rootDir: string, fileDef: StringToFileDef) {
@@ -83,17 +83,19 @@ export class FilePipe {
   public task: Task
   private callList: Array<any>
 
-  constructor (task: Task, root: string, matcher?: MatcherDefinition) {
+  constructor (
+    task: Task, root: string, matcher?: MatcherDefinition, options?: IOptions
+  ) {
     this.task = task
     this.root = root
 
     if (matcher == null) {
       this.promise = Promise.resolve([])
     } else if (typeof matcher == "string") {
-      this.promise = getWorkingFiles(task, root, matcher)
+      this.promise = getWorkingFiles(task, root, matcher, options)
     } else {
       this.promise = Promise.all(matcher.map((matchString: string) => {
-        return getWorkingFiles(task, root, matchString)
+        return getWorkingFiles(task, root, matchString, options)
       })).then((results: Array<Array<WorkingFile>>) => {
         let finalArray: Array<WorkingFile> = []
         results.forEach((result) => {
