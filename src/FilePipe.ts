@@ -9,6 +9,7 @@ interface WorkingFile {
   directory: string
   originalPath?: string | Buffer
   originalData?: string | Buffer
+  mode?: any
   data: any
 }
 
@@ -199,11 +200,16 @@ function _writeFile (pathStr: string, file: WorkingFile) {
     mkdirp(dir, (err: any) => {
       if (err) return reject(err)
 
-      writeFile(pathStr, file.data, (err) => {
-        if (err) return reject(err)
+      writeFile(
+        pathStr,
+        file.data,
+        file.mode ? {mode: file.mode} : {},
+        (err) => {
+          if (err) return reject(err)
 
-        resolve(file)
-      })
+          resolve(file)
+        }
+      )
     })
   })
 }
