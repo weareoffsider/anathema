@@ -1,6 +1,6 @@
 {
   "name": "anathema",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "A task runner/orchestrator for people who aren't a fan of plugins.",
   "main": "node/index.js",
   "files": [
@@ -13,9 +13,9 @@
   "bin": {
     "anathema": "./node/cli.js"
   },
-  "repository" : {
-    "type" : "git",
-    "url" : "https://github.com/weareoffsider/anathema.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/weareoffsider/anathema.git"
   },
   "scripts": {
     "build": "tsc",
@@ -34,6 +34,7 @@
     "glob": "7.1.2",
     "minimatch": "3.0.4",
     "mkdirp": "0.5.1",
+    "node-notifier": "5.3.0",
     "ora": "^2.1.0",
     "yargs": "^11.0.0"
   },

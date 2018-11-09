@@ -20,6 +20,10 @@ export default class RunOnceMonitor extends TaskMonitor {
     super()
   }
 
+  outputNotifyTitle () {
+    return "Run " + this.tasksToFire.join(', ') + ""
+  }
+
   outputStatusLine () {
     const name = "Run " + this.tasksToFire.join(', ') + ""
     if (this.tasksActive.length > 0) {

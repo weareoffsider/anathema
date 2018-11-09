@@ -6,6 +6,8 @@ import {Anathema} from './index'
 import Dashboard from './Dashboard'
 import Task from './Task'
 import TaskMonitor from './TaskMonitor'
+const notifier = require('node-notifier')
+
 
 export default class CustomMonitor extends TaskMonitor {
   public tasksActive: string[]
@@ -78,15 +80,21 @@ export default class CustomMonitor extends TaskMonitor {
     this.lastReportSuccess = messageData
     this.lastReportError = null
     this.dashboardInstance.updateAndRender()
+    this.notifySuccess()
   }
 
   reportFailure (err: any) {
+    this.notifyFailure(err.toString())
     this.lastReportStatus = "failed"
     this.lastReportSuccess = ""
     this.lastReportError = err
     this.lastReportSpeed = 0
     this.dashboardInstance.addToLog(this.outputTaskData())
     this.dashboardInstance.updateAndRender()
+  }
+
+  outputNotifyTitle () {
+    return "Monitor " + this.name
   }
 
   run () {

@@ -52,6 +52,12 @@ export default class Task {
     this.stats.dependencies.push(task)
   }
 
+  errorSummaryToString() {
+    return (
+      this.stats.error.stack || this.stats.error || "Unspecified Error"
+    ).toString()
+  }
+
   reportToString(indent: string = "", reportAsDependency: boolean = false) {
     const lines: string[] = []
     const log = (txt: string) => lines.push(txt)

@@ -46,6 +46,10 @@ export default class Watcher extends TaskMonitor {
     }
   }
 
+  outputNotifyTitle () {
+    return this.name + " (" + this.matcher + ")"
+  }
+
   outputStatusLine () {
     const escapedMatcher = this.matcher.replace('{', '_open_')
                                        .replace('}', '_close_')
