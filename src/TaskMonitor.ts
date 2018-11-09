@@ -27,6 +27,7 @@ export default class TaskMonitor {
 
   notifySuccess () {
     if (this.lastNotifyState != "success") {
+      this.lastNotifyState = "success"
       notifier.notify({
         title: this.outputNotifyTitle(), message: "Task successful",
         sound: false,
