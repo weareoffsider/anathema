@@ -1,4 +1,5 @@
 var anathema = require('./config')
+var path = require('path')
 const LocalWebServer = require('local-web-server')
 const gitRev = require('git-rev')
 
@@ -15,6 +16,20 @@ anathema.task('clean', function(task) {
       task.stats.filesMatched = task.stats.filesMatched.concat(paths)
       return true
     })
+})
+
+anathema.task('move', function(task) {
+  return task.src(
+    'usage/**/*.js',
+    {
+      ignore: [
+        path.join(anathema.rootDirectory, 'usage/srccopy/**/*'),
+      ],
+    }
+  ).transform((file) => {
+      // preserve binary data by setting original
+      file.data = file.originalData
+    }).output('usage/srccopy')
 })
 
 anathema.task('wait', function(task) {
@@ -50,7 +65,7 @@ anathema.dashboard("default", function (dashboard) {
   dashboard.task(['scripts', 'version-json'])
   dashboard.watch(['styles', 'containers'])
   dashboard.monitor(['webpack'])
-  dashboard.task(['devServer'])
+  dashboard.task(['devServer', 'move'])
 })
 
 module.exports = anathema

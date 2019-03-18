@@ -1,6 +1,6 @@
 {
   "name": "anathema",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "A task runner/orchestrator for people who aren't a fan of plugins.",
   "main": "node/index.js",
   "files": [
@@ -19,7 +19,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test-anathema": "./node/cli.js --config usage/anathema.js",
+    "test-anathema": "node ./node/cli.js --config usage/anathema.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "James Rakich",
