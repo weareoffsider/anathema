@@ -21,6 +21,19 @@ anathema.task("styles:less", function (task) {
     .output('usage/out')
 })
 
+anathema.task("styles:basecheck", function (task) {
+  return task.src("usage/src/subdir/testsubdir.less", {
+    base: 'usage/src',
+  })
+    .transform(
+      (file, out) => {
+        file.name = file.name.replace('.less', '.less.out')
+      }
+    )
+    .output('usage/out')
+})
+
+
 anathema.task("styles:post", ["styles:less"], function (task) {
   return task.src("usage/out/app.less.css")
     .transform(

@@ -4,6 +4,10 @@ import {Glob, IOptions} from 'glob'
 import Task from './Task'
 import * as mkdirp from 'mkdirp'
 
+export interface FilePipeOptions extends IOptions {
+  base?: string
+}
+
 interface WorkingFile {
   name: string
   directory: string
@@ -72,7 +76,7 @@ async function getWorkingFiles (task: Task, root: string, matcher: string, optio
   })
 }
 
-export function src (task: Task, rootDir: string, matcher: MatcherDefinition, options?: IOptions) {
+export function src (task: Task, rootDir: string, matcher: MatcherDefinition, options?: FilePipeOptions) {
   return new FilePipe(task, rootDir, matcher, options)
 }
 
@@ -118,20 +122,24 @@ export class FilePipe {
   public instructions: Array<FilePipeInstruction>
 
   constructor (
-    task: Task, root: string, matcher?: MatcherDefinition, options?: IOptions
+    task: Task, root: string, matcher?: MatcherDefinition, options?: FilePipeOptions
   ) {
     this.activeThreshold = 10
     this.instructions = []
     this.task = task
     this.root = root
 
+    const fpOptions: FilePipeOptions = options || {}
+    const globOptions = Object.assign({}, options)
+    delete globOptions.base
+
     if (matcher == null) {
       this.promise = Promise.resolve([])
     } else if (typeof matcher == "string") {
-      this.promise = getWorkingFiles(task, root, matcher, options)
+      this.promise = getWorkingFiles(task, root, matcher, globOptions)
     } else {
       this.promise = Promise.all(matcher.map((matchString: string) => {
-        return getWorkingFiles(task, root, matchString, options)
+        return getWorkingFiles(task, root, matchString, globOptions)
       })).then((results: Array<Array<WorkingFile>>) => {
         let finalArray: Array<WorkingFile> = []
         results.forEach((result) => {
@@ -142,7 +150,11 @@ export class FilePipe {
     }
 
     this.promise = this.promise.then((workingFiles) => {
-      this.commonBase = getCommonBaseFromWorkingFiles(workingFiles)
+      if (fpOptions.base) {
+        this.commonBase = path.join(this.root, fpOptions.base)
+      } else {
+        this.commonBase = getCommonBaseFromWorkingFiles(workingFiles)
+      }
       workingFiles.forEach((file) => {
         file.directory = file.directory.replace(this.commonBase, '')
       })

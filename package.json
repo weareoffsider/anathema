@@ -1,6 +1,6 @@
 {
   "name": "anathema",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A task runner/orchestrator for people who aren't a fan of plugins.",
   "main": "node/index.js",
   "files": [
